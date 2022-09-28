@@ -1,13 +1,12 @@
 import numpy as np
 import pandas as pd
 from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
 
 
 df = pd.read_csv('./data/direccion.csv')
 
-
 geolocator = Nominatim(user_agent="geocoding")
-
 # print(df.columns)
 # Index(['ID_DIRECCION', 'ID_TIPO_VIA', 'NOMBRE_VIA_DIRECCION', 'ID_PREFIJO_1_1',
 #        'NUMERO_VIA_GENERADORA_DIRECCION', 'ID_PREFIJO_1_2',
@@ -24,39 +23,46 @@ geolocator = Nominatim(user_agent="geocoding")
 # 2             3         AUT                    1            NaN  ...            NaN         AUTOPISTA 1 # 1 1,MEDELLÍN,ANTIOQUIA        ANTIOQUIA      MEDELLÍN
 # 3             4         AUT                    1            NaN  ...            NaN        AUTOPISTA 1 # 1 1,ABEJORRAL,ANTIOQUIA        ANTIOQUIA     ABEJORRAL
 # 4             5         AUT                    1            NaN  ...            NaN         AUTOPISTA 1 # 1 1,APARTADÓ,ANTIOQUIA        ANTIOQUIA      APARTADÓ
+geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
 
-no_rows = len(df)
-addresses = [np.NaN] * no_rows
-latitudes = [np.NaN] * no_rows
-longitudes = [np.NaN] * no_rows
 
-for i, direccion in enumerate(df['DIRECCION_COMPLETA']):
-    error = True
+# no_rows = len(df)
+# addresses = [np.NaN] * no_rows
+# latitudes = [np.NaN] * no_rows
+# longitudes = [np.NaN] * no_rows
 
-    while error:
-        try:
-            print(i)
-            location = geolocator.geocode(direccion)
-            if location is not None:
-                address = location.address
-                latitude = location.latitude
-                longitude = location.longitude
-                print(f'{address} ({latitude}, {longitude})')
+# for i, direccion in enumerate(df['DIRECCION_COMPLETA']):
+#     error = True
 
-                addresses[i] = address
-                latitudes[i] = latitude
-                longitudes[i] = longitude
+#     while error:
+#         try:
+#             print(i)
+#             location = geolocator.geocode(direccion)
+#             if location is not None:
+#                 address = location.address
+#                 latitude = location.latitude
+#                 longitude = location.longitude
+#                 print(f'{address} ({latitude}, {longitude})')
 
-            error = False
+#                 addresses[i] = address
+#                 latitudes[i] = latitude
+#                 longitudes[i] = longitude
 
-        except:
-            error = True
+#             error = False
 
-df['address'] = addresses
-df['latitudes'] = latitudes
-df['longitudes'] = longitudes
+#         except:
+#             error = True
 
-print(df.head())
+# df['address'] = addresses
+# df['latitudes'] = latitudes
+# df['longitudes'] = longitudes
+
+df['location'] = df['DIRECCION_COMPLETA'].apply(geocode)
+df['point'] = df['location'].apply(lambda loc: tuple(loc.point) if loc else None)
+
+
+
+# print(df.head())
 
 df.to_csv('./data/direccion_nominatim.csv')
 
